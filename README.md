@@ -1,16 +1,16 @@
-# Hunter Robot Simulation
+# Hunter With Arm Robot
 
 ```bash 
 
 export GAZEBO_PLUGIN_PATH=/opt/ros/humble/lib:$GAZEBO_PLUGIN_PATH && echo "GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH"
 
 
-ros2 launch mobile_manipulator_pltf_description sim_bringup.launch.py
+ros2 launch hunter_with_arm_robot_description sim_bringup.launch.py
 ```
 
 --- 
 
-This repository contains the **URDF** description and Gazebo simulation for the **Hunter V2** robot. The Hunter V2 is an **Ackermann-steered** mobile robot with front-wheel steering, simulated using ROS 2 control.
+This repository contains the non-CUDA robot workspace for the Hunter base, UR arm, Livox sensors, and robot-owned TF for fixed camera mounts. The CUDA ZED driver stack is not part of this repository anymore and should run from `aoc_zed` in separate camera containers.
 
 Official Robot Website: [AgileX Hunter V2B](https://global.agilex.ai/products/hunter-2-0)
 
@@ -20,6 +20,7 @@ Official Robot Website: [AgileX Hunter V2B](https://global.agilex.ai/products/hu
 
 - **Ackermann Steering**: Configured for front-wheel steering with accurate kinematics.
 - **ROS 2 Control Integration**: Leverages `ros2_control` for simulating robot kinematics and dynamics.
+- **Robot-Owned Camera TF**: Publishes the fixed `base_link -> <camera>_link` mount frames so ZED drivers can run in separate containers without a shared build workspace.
 - **URDF Description**: Detailed robot description based on manufacturer specifications.
 - **Gazebo Simulation**: Visualize and simulate the Hunter V2 robot in Gazebo.
 - **Rviz Support**: Visualize the robot and interact with its joints using Rviz.
@@ -62,8 +63,18 @@ colcon build
 This repository includes the following ROS 2 packages:
 
 1. **`hunter_with_arm_description`**: URDF and robot description files. Also includes Gazebo simulation launch files and configuration (previously in `hunter_with_arm_gazebo`).
-2. **`mobile_manipulator_pltf_description`**: Description and simulation files for the mobile manipulator platform. Includes Gazebo simulation launch files and worlds (previously in `mobile_manipulator_pltf_gazebo`).
-3. **`mobile_manipulator_pltf_bringup`**: MoveIt configuration and bringup files for the mobile manipulator platform.
+2. **`hunter_with_arm_robot_description`**: Composite robot description, sensor mount frames, and Gazebo simulation assets for the full platform.
+3. **`hunter_with_arm_robot_bringup`**: MoveIt configuration and bringup files for the full platform.
+
+## Container Boundary
+
+The previous architecture was wrong. Building the robot workspace and the ZED SDK in the same image forced CUDA onto the entire robot stack for no gain.
+
+- This repository should build from `lcas.lincoln.ac.uk/ros:humble`.
+- `aoc_zed` should build from `lcas.lincoln.ac.uk/ros_cuda:*` and run one container per physical camera.
+- The robot container owns fixed camera mount transforms such as `base_link -> front_camera_link`.
+- Each `aoc_zed` container owns camera-internal frames and ZED topics under its camera namespace.
+- If the ZED cameras are not the localization source, launch them with `publish_tf:=false` and `publish_map_tf:=false` to avoid polluting the TF tree.
 
 ---
 
@@ -142,7 +153,7 @@ For more details on ROS 2 Control and Gazebo integration, see:
 
 # Mobile Manipulator Platform ROS 2 Packages
 
-This repository is designed for bringing up a mobile manipulator platform with the following packages: `mobile_manipulator_pltf_bringup` and `mobile_manipulator_pltf_description` to facilitate bringing up the robot, providing its description, and simulating it in Gazebo, part of the Agri-OpenCore (AOC) project.
+This repository is designed for bringing up a mobile manipulator platform with the following packages: `hunter_with_arm_robot_bringup` and `hunter_with_arm_robot_description` to facilitate bringing up the robot, providing its description, and simulating it in Gazebo, part of the Agri-OpenCore (AOC) project.
 
 
 --- 

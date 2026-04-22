@@ -1,42 +1,44 @@
-FROM lcas.lincoln.ac.uk/lcas/aoc_scenario_base:latest AS base
+ARG BASE_IMAGE=lcas.lincoln.ac.uk/ros:humble-main
+ARG ROS_DISTRO=humble
+
+FROM ${BASE_IMAGE} AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
-USER root
-
-RUN add-apt-repository universe \
-  && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
-  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
 RUN apt-get update \
-    && apt-get install -qq -y --no-install-recommends \
+  && apt-get install -y --no-install-recommends \
     git \
-    python3-pip \
-    python3-rosdep
+    python3-colcon-common-extensions \
+    python3-rosdep \
+    python3-vcstool \
+  && rm -rf /var/lib/apt/lists/*
 
-# get the source tree and analyse it for its package.xml only
-FROM base AS sourcefilter
+WORKDIR /workspace/src
+
+FROM base AS deps
+
 COPY . /tmp/src
-# remove everything that isn't package.xml
-RUN find /tmp/src -type f \! -name "package.xml" -print | xargs rm -rf
+RUN find /tmp/src -type f ! -name package.xml -delete \
+  && find /tmp/src -mindepth 1 -type d -empty -delete
 
-# install all dependencies listed in the package.xml
-FROM base AS depbuilder
-# copy the reduced source tree (only package.xml) from previous stage
-COPY --from=sourcefilter /tmp/src /tmp/src
-RUN rosdep update && apt-get update
-RUN cd /tmp/src && rosdep install --from-paths . --ignore-src -r -y && cd && rm -rf /tmp/src
+RUN rosdep update --rosdistro ${ROS_DISTRO} \
+  && apt-get update \
+  && rosdep install --rosdistro ${ROS_DISTRO} --from-paths /tmp/src --ignore-src -r -y \
+  && rm -rf /tmp/src /var/lib/apt/lists/*
 
-FROM depbuilder AS final
-# add sudo without password
-RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+FROM deps AS final
 
-RUN echo "source /opt/ros/humble/setup.bash" >> /etc/bash.bashrc
+WORKDIR /workspace/src
 
-USER ros
+COPY . /workspace/src
 
-LABEL org.opencontainers.image.target="devcontainer"
-# set to domain id 1 as a default
-ENV ROS_DOMAIN_ID=1
+WORKDIR /workspace
 
-# default command for a devcontainer
-CMD ["/bin/sh", "-c", "while sleep 1000; do :; done"]
+RUN /bin/bash -lc "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --symlink-install"
+
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /etc/bash.bashrc \
+  && echo "source /workspace/install/setup.bash" >> /etc/bash.bashrc
+
+ENV ROS_DOMAIN_ID=10
+
+CMD ["/bin/bash", "-lc", "source /workspace/install/setup.bash && exec ros2 launch hunter_with_arm_robot_description pltf_rsp.launch.py"]

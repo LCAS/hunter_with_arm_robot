@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="mobile_manipulator_pltf">
+
+  <!-- Include the macro definition -->
+  <xacro:include filename="$(find hunter_with_arm_robot_description)/description/mobile_manipulator_pltf_macro.xacro"/>
+
+  <!-- Define arguments -->
+  <xacro:arg name="is_sim" default="true"/>
+  <xacro:arg name="prefix" default="" />
+  <xacro:arg name="use_base" default="true"/>
+  <xacro:arg name="use_arm" default="true"/>
+  
+  <!-- Auto-instantiate the macro -->
+  <xacro:mobile_manipulator_pltf 
+    is_sim="$(arg is_sim)" 
+    prefix="$(arg prefix)" 
+    use_base="$(arg use_base)" 
+    use_arm="$(arg use_arm)"
+  />
+
+</robot>

@@ -2,23 +2,25 @@
 
 set -e -x
 
-# Remove directories if they exist
-rm -rf /home/ros/aoc_hunter_ws/install
-rm -rf /home/ros/aoc_hunter_ws/build
-rm -rf /home/ros/aoc_hunter_ws/log
+WORKSPACE_DIR=/workspace
 
-bash /home/ros/aoc_hunter_ws/src/.devcontainer/scripts/build_workspace.sh
-bash /home/ros/aoc_hunter_ws/src/.devcontainer/scripts/startup.sh
-bash /home/ros/aoc_hunter_ws/src/.devcontainer/scripts/vnc.sh
+# Remove directories if they exist
+rm -rf ${WORKSPACE_DIR}/install
+rm -rf ${WORKSPACE_DIR}/build
+rm -rf ${WORKSPACE_DIR}/log
+
+bash ${WORKSPACE_DIR}/src/.devcontainer/scripts/build_workspace.sh
+bash ${WORKSPACE_DIR}/src/.devcontainer/scripts/startup.sh
+bash ${WORKSPACE_DIR}/src/.devcontainer/scripts/vnc.sh
 
 # Create directories
-mkdir -p /home/ros/aoc_hunter_ws/install
-mkdir -p /home/ros/aoc_hunter_ws/build
-mkdir -p /home/ros/aoc_hunter_ws/log
+mkdir -p ${WORKSPACE_DIR}/install
+mkdir -p ${WORKSPACE_DIR}/build
+mkdir -p ${WORKSPACE_DIR}/log
 
 # Set ownership to ros user and group
-chown -R ros:ros /home/ros/aoc_hunter_ws/install
-chown -R ros:ros /home/ros/aoc_hunter_ws/build
-chown -R ros:ros /home/ros/aoc_hunter_ws/log
+chown -R ros:ros ${WORKSPACE_DIR}/install
+chown -R ros:ros ${WORKSPACE_DIR}/build
+chown -R ros:ros ${WORKSPACE_DIR}/log
 
-cd /home/ros/aoc_hunter_ws/ && colcon build
+cd ${WORKSPACE_DIR} && colcon build
